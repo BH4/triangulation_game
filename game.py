@@ -1,9 +1,3 @@
-"""
-To do:
-Triangles be behind numbers and circles. And numbers and circles need to be different color.
-Allow zoom and pan
-"""
-
 from get_triangulation import get_good_triangles
 from collections import defaultdict
 import numpy as np
