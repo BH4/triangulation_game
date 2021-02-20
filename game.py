@@ -129,6 +129,7 @@ class triangulation:
         # Give the canvas keyboard focus when clicked. So key presses can fire events.
         self.canvas.focus_set()
         self.canvas.bind("<ButtonPress-1>", self.click)
+        self.canvas.bind("<ButtonRelease-1>", self.click)
         self.canvas.bind("<B1-Motion>", self.drag)
         self.canvas.bind("<BackSpace>", self.undo)
         self.canvas.pack()
@@ -140,6 +141,8 @@ class triangulation:
             self.vertex_id_list.append(my_id)
 
         self.selected = []
+        self.current_line_id = None
+        self.last_click = None
 
         for t in self.triangles:
             my_id = self.draw_triangle(t)
@@ -147,17 +150,54 @@ class triangulation:
 
         self.show_nums()
 
+    def selection_event(self, vertex_ind):
+        my_id = self.vertex_id_list[vertex_ind]
+        self.canvas.itemconfig(my_id, fill="blue")
+
+        if len(self.selected) == 0:
+            self.selected.append(vertex_ind)
+            p = self.scale_point(self.points[vertex_ind])
+            self.current_line_id = self.draw_line(p, p)
+        else:
+            self.canvas.delete(self.current_line_id)
+            self.current_line_id = None
+
+            other = self.selected[0]
+            # clear selection
+            self.selected = []
+            self.canvas.itemconfig(my_id, fill="white")
+            self.canvas.itemconfig(self.vertex_id_list[other], fill="white")
+
+            edge = tuple(sorted([other, vertex_ind]))
+
+            if edge not in self.shown_edges and edge[0] != edge[1]:
+                self.shown_edges.append(edge)
+                p1 = self.scale_point(self.points[edge[0]])
+                p2 = self.scale_point(self.points[edge[1]])
+                line_id = self.draw_line(p1, p2)
+                self.edge_ids.append(line_id)
+
+                self.remaining_edges[edge[0]] -= 1
+                self.remaining_edges[edge[1]] -= 1
+                self.update_nums()
+
+                self.check_completed_triangles(edge)
+
     def click(self, event):
         click_pos = (event.x/self.canvas_width, event.y/self.canvas_height)
         dist = [distance(click_pos, x) for x in self.points]
         z = sorted(zip(dist, list(range(len(self.points)))))
         closest = z[0]
         if closest[0] < .03:
+            self.selection_event(closest[1])
+        """
             my_id = self.vertex_id_list[closest[1]]
             self.canvas.itemconfig(my_id, fill="blue")
 
             if len(self.selected) == 0:
                 self.selected.append(closest[1])
+                p = self.scale_point(self.points[closest[1]])
+                self.current_line_id = self.draw_line(p, p)
             else:
                 other = self.selected[0]
                 # clear selection
@@ -179,6 +219,7 @@ class triangulation:
                     self.update_nums()
 
                     self.check_completed_triangles(edge)
+        """
 
     def undo(self, event):
         """
@@ -207,8 +248,10 @@ class triangulation:
             self.canvas.itemconfig(self.tri_ids[ind], fill='')
 
     def drag(self, event):
-        # pan
-        pass
+        if len(self.selected) == 1:
+            p1 = self.scale_point(self.points[self.selected[0]])
+            p2 = (event.x, event.y)
+            self.canvas.coords(self.current_line_id, p1[0], p1[1], p2[0], p2[1])
 
     def loop(self):
         self.root.after(1, self.loop)
