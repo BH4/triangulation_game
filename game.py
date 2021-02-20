@@ -102,7 +102,7 @@ class triangulation:
         x1 = center[0]+radius
         y0 = center[1]-radius
         y1 = center[1]+radius
-        my_id = self.canvas.create_oval(x0, y0, x1, y1)
+        my_id = self.canvas.create_oval(x0, y0, x1, y1, fill='white')
         return my_id
 
     def draw_triangle(self, vertex_inds):
@@ -120,6 +120,7 @@ class triangulation:
 
     def draw_line(self, p1, p2):
         my_id = self.canvas.create_line(p1[0], p1[1], p2[0], p2[1])
+        self.canvas.tag_lower(my_id)
         return my_id
 
     def setup(self):
@@ -134,21 +135,21 @@ class triangulation:
         self.canvas.bind("<BackSpace>", self.undo)
         self.canvas.pack()
 
+        for t in self.triangles:
+            my_id = self.draw_triangle(t)
+            self.tri_ids.append(my_id)
+
         circle_radius = 5
         for pos in self.points:
             center = (pos[0]*self.canvas_width, pos[1]*self.canvas_height)
             my_id = self.draw_circle(center, circle_radius)
             self.vertex_id_list.append(my_id)
 
+        self.show_nums()
+
         self.selected = []
         self.current_line_id = None
         self.last_click = None
-
-        for t in self.triangles:
-            my_id = self.draw_triangle(t)
-            self.tri_ids.append(my_id)
-
-        self.show_nums()
 
     def selection_event(self, vertex_ind):
         my_id = self.vertex_id_list[vertex_ind]
