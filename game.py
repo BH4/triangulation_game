@@ -173,7 +173,7 @@ class triangulation:
 
                 edge = tuple(sorted([other, closest[1]]))
 
-                if edge not in self.shown_edges:
+                if edge not in self.shown_edges and edge[0] != edge[1]:
                     self.shown_edges.append(edge)
                     p1 = self.scale_point(self.points[edge[0]])
                     p2 = self.scale_point(self.points[edge[1]])
@@ -221,5 +221,5 @@ class triangulation:
 
 
 if __name__ == '__main__':
-    g = triangulation(2154, verbose=True)
+    g = triangulation(57, verbose=False)
     # g.show_solution()
