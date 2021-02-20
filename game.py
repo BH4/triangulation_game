@@ -85,6 +85,21 @@ class triangulation:
             num = self.remaining_edges[i]
             self.canvas.itemconfigure(my_id, text=str(num))
 
+    def check_completed_vertex(self, ind):
+        point_done = True
+        for i, t in enumerate(self.triangles):
+            if ind in t:
+                f_color = self.canvas.itemcget(self.tri_ids[i], 'fill')
+                if len(f_color) == 0:
+                    point_done = False
+                    return point_done
+
+        my_id = self.vertex_id_list[ind]
+        my_num_id = self.text_ids[ind]
+        self.canvas.tag_lower(my_num_id)
+        self.canvas.tag_lower(my_id)
+        return point_done
+
     def check_completed_triangles(self, edge):
         triangle_inds = self.edge_to_triangle[edge]
         if self.verbose:
@@ -92,10 +107,14 @@ class triangulation:
         for ind in triangle_inds:
             edges = triangle_points_to_edges(self.triangles[ind])
             if all([(e in self.shown_edges) for e in edges]):
-                # turn on this triangle
+                # Turn on this triangle
                 rand_color = randint(1, 128)
                 hex_str = '#'+hex(rand_color)[2:]*3
                 self.canvas.itemconfig(self.tri_ids[ind], fill=hex_str)
+
+                # Check each vertex connected to the triangle
+                for v in self.triangles[ind]:
+                    self.check_completed_vertex(v)
 
     def draw_circle(self, center, radius):
         x0 = center[0]-radius
@@ -247,6 +266,15 @@ class triangulation:
         triangle_inds = self.edge_to_triangle[edge]
         for ind in triangle_inds:
             self.canvas.itemconfig(self.tri_ids[ind], fill='')
+
+            # Any triangle which just became transparent (or already was) will
+            # have vertices that need to be on top instead of hidden at the
+            # bottom.
+            for v in self.triangles[ind]:
+                my_id = self.vertex_id_list[v]
+                my_num_id = self.text_ids[v]
+                self.canvas.tag_raise(my_id)
+                self.canvas.tag_raise(my_num_id)
 
     def drag(self, event):
         if len(self.selected) == 1:
