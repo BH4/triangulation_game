@@ -99,6 +99,8 @@ class triangulation(tk.Frame):
         my_num_id = self.text_ids[ind]
         self.canvas.tag_lower(my_num_id)
         self.canvas.tag_lower(my_id)
+        self.canvas.itemconfigure(my_num_id, fill='white')
+        self.canvas.itemconfigure(my_id, outline='white')
         return point_done
 
     def check_completed_triangles(self, edge):
@@ -109,7 +111,7 @@ class triangulation(tk.Frame):
             edges = triangle_points_to_edges(self.triangles[ind])
             if all([(e in self.shown_edges) for e in edges]):
                 # Turn on this triangle
-                rand_color = randint(1, 128)
+                rand_color = randint(30, 128)
                 hex_str = '#'+hex(rand_color)[2:]*3
                 self.canvas.itemconfig(self.tri_ids[ind], fill=hex_str)
 
@@ -290,6 +292,8 @@ class triangulation(tk.Frame):
                 my_num_id = self.text_ids[v]
                 self.canvas.tag_raise(my_id)
                 self.canvas.tag_raise(my_num_id)
+                self.canvas.itemconfigure(my_num_id, fill='black')
+                self.canvas.itemconfigure(my_id, outline='black')
 
     def drag(self, event):
         x = self.canvas.canvasx(event.x)
@@ -306,5 +310,5 @@ class triangulation(tk.Frame):
 
 
 if __name__ == '__main__':
-    g = triangulation(57, verbose=False)
+    g = triangulation(78, verbose=False)
     # g.show_solution()
