@@ -19,8 +19,10 @@ def triangle_points_to_edges(t):
     return edges
 
 
-class triangulation:
+class triangulation(tk.Frame):
     def __init__(self, lvl_seed, n=30, verbose=False):
+        self.root = tk.Tk()
+        tk.Frame.__init__(self, self.root)
         # The number of points used can be less than n.
         self.verbose = verbose
         self.points = None
@@ -55,7 +57,6 @@ class triangulation:
         self.remaining_edges = deepcopy(self.edge_count)
 
         # Set up graphics
-        self.root = tk.Tk()
         self.setup()
         self.root.after(1, self.loop)
         self.root.mainloop()
@@ -146,6 +147,16 @@ class triangulation:
         self.canvas_height = 600
         self.canvas_width = 600
         self.canvas = tk.Canvas(self.root, bg="white", width=self.canvas_width, height=self.canvas_height)
+        # Scrolling
+        self.xsb = tk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
+        self.ysb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.ysb.set, xscrollcommand=self.xsb.set)
+        self.canvas.configure(scrollregion=(-400, -400, 1000, 1000))
+        self.xsb.grid(row=1, column=0, sticky="ew")
+        self.ysb.grid(row=0, column=1, sticky="ns")
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         # Give the canvas keyboard focus when clicked. So key presses can fire events.
         self.canvas.focus_set()
         self.canvas.bind("<ButtonPress-1>", self.click)
@@ -204,12 +215,16 @@ class triangulation:
                 self.check_completed_triangles(edge)
 
     def click(self, event):
-        click_pos = (event.x/self.canvas_width, event.y/self.canvas_height)
+        x = self.canvas.canvasx(event.x)
+        y = self.canvas.canvasy(event.y)
+        click_pos = (x/self.canvas_width, y/self.canvas_height)
         dist = [distance(click_pos, x) for x in self.points]
         z = sorted(zip(dist, list(range(len(self.points)))))
         closest = z[0]
-        if closest[0] < .03:
+        if closest[0] < .03 or len(self.selected) == 1:
             self.selection_event(closest[1])
+        else:
+            self.canvas.scan_mark(event.x, event.y)
         """
             my_id = self.vertex_id_list[closest[1]]
             self.canvas.itemconfig(my_id, fill="blue")
@@ -277,10 +292,14 @@ class triangulation:
                 self.canvas.tag_raise(my_num_id)
 
     def drag(self, event):
+        x = self.canvas.canvasx(event.x)
+        y = self.canvas.canvasy(event.y)
         if len(self.selected) == 1:
             p1 = self.scale_point(self.points[self.selected[0]])
-            p2 = (event.x, event.y)
+            p2 = (x, y)
             self.canvas.coords(self.current_line_id, p1[0], p1[1], p2[0], p2[1])
+        else:
+            self.canvas.scan_dragto(event.x, event.y, gain=1)
 
     def loop(self):
         self.root.after(1, self.loop)
