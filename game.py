@@ -72,6 +72,8 @@ class triangulation(tk.Frame):
         plt.show()
 
     def scale_point(self, p):
+        # This function only scales the points down to a 0-1 by 0-1 grid.
+        # The scale here is unrelated to the zoom.
         return (p[0]*self.canvas_width, p[1]*self.canvas_height)
 
     def show_nums(self):
@@ -165,6 +167,9 @@ class triangulation(tk.Frame):
         self.canvas.bind("<ButtonRelease-1>", self.click)
         self.canvas.bind("<B1-Motion>", self.drag)
         self.canvas.bind("<BackSpace>", self.undo)
+        # windows scroll
+        self.canvas.bind("<MouseWheel>", self.zoomer)
+        self.scale = 1
         self.canvas.pack()
 
         for t in self.triangles:
@@ -205,8 +210,8 @@ class triangulation(tk.Frame):
 
             if edge not in self.shown_edges and edge[0] != edge[1]:
                 self.shown_edges.append(edge)
-                p1 = self.scale_point(self.points[edge[0]])
-                p2 = self.scale_point(self.points[edge[1]])
+                p1 = [v*self.scale for v in self.scale_point(self.points[edge[0]])]
+                p2 = [v*self.scale for v in self.scale_point(self.points[edge[1]])]
                 line_id = self.draw_line(p1, p2)
                 self.edge_ids.append(line_id)
 
@@ -217,8 +222,8 @@ class triangulation(tk.Frame):
                 self.check_completed_triangles(edge)
 
     def click(self, event):
-        x = self.canvas.canvasx(event.x)
-        y = self.canvas.canvasy(event.y)
+        x = self.canvas.canvasx(event.x)/self.scale
+        y = self.canvas.canvasy(event.y)/self.scale
         click_pos = (x/self.canvas_width, y/self.canvas_height)
         dist = [distance(click_pos, x) for x in self.points]
         z = sorted(zip(dist, list(range(len(self.points)))))
@@ -301,9 +306,24 @@ class triangulation(tk.Frame):
         if len(self.selected) == 1:
             p1 = self.scale_point(self.points[self.selected[0]])
             p2 = (x, y)
-            self.canvas.coords(self.current_line_id, p1[0], p1[1], p2[0], p2[1])
+            self.canvas.coords(self.current_line_id, p1[0]*self.scale, p1[1]*self.scale, p2[0], p2[1])
         else:
             self.canvas.scan_dragto(event.x, event.y, gain=1)
+
+    # windows zoom
+    def zoomer(self, event):
+        # x = self.canvas.canvasx(event.x)
+        # y = self.canvas.canvasy(event.y)
+        # Coordinates get too messed up when zooming from mouse.
+        x = 0
+        y = 0
+        if (event.delta > 0):
+            self.canvas.scale("all", x, y, 1.1, 1.1)
+            self.scale *= 1.1
+        elif (event.delta < 0):
+            self.canvas.scale("all", x, y, 0.9, 0.9)
+            self.scale *= 0.9
+        # self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def loop(self):
         self.root.after(1, self.loop)
