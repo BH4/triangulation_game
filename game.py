@@ -166,7 +166,7 @@ class triangulation(tk.Frame):
         self.canvas.bind("<ButtonPress-1>", self.click)
         self.canvas.bind("<ButtonRelease-1>", self.click)
         self.canvas.bind("<B1-Motion>", self.drag)
-        self.canvas.bind("<BackSpace>", self.undo)
+        self.canvas.bind("<ButtonPress-3>", self.undo)
         # windows scroll
         self.canvas.bind("<MouseWheel>", self.zoomer)
         self.scale = 1
