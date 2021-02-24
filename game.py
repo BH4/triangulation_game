@@ -323,7 +323,9 @@ class triangulation(tk.Frame):
         elif (event.delta < 0):
             self.canvas.scale("all", x, y, 0.9, 0.9)
             self.scale *= 0.9
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        bb = self.canvas.bbox("all")
+        new_bb = (bb[0]-500, bb[1]-500, bb[2]+500, bb[3]+500)
+        self.canvas.configure(scrollregion=new_bb)
 
     def loop(self):
         self.root.after(1, self.loop)
