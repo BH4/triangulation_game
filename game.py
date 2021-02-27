@@ -1,10 +1,9 @@
 from get_triangulation import get_good_triangles
 from collections import defaultdict
 import numpy as np
-import matplotlib.pyplot as plt
 from copy import deepcopy
 import tkinter as tk
-from random import randint
+from random import randint, random
 
 
 def distance(p1, p2):
@@ -20,13 +19,17 @@ def triangle_points_to_edges(t):
 
 
 class triangulation(tk.Frame):
-    def __init__(self, lvl_seed, n=30, verbose=False):
+    def __init__(self, lvl_seed=randint(0, 10**8), n=30, grayscale=True, verbose=False, auto_solve=False):
+        print('Level seed:', lvl_seed)
+
         self.root = tk.Tk()
         tk.Frame.__init__(self, self.root)
         # The number of points used can be less than n.
         self.verbose = verbose
         self.points = None
         self.triangles = None
+        self.grayscale = grayscale
+        self.auto_solve = auto_solve
 
         points, tri = get_good_triangles(n, rand_seed=lvl_seed, bad_const=0.03)
 
@@ -41,6 +44,14 @@ class triangulation(tk.Frame):
         self.remaining_edges = []  # deepcopy(self.edge_count)
         self.vertex_id_list = []
         self.text_ids = []
+
+        # Coloration
+        if not grayscale:
+            self.color_pattern = [random(), random(), random()]
+            s = sum(self.color_pattern)
+            self.color_pattern = [x/s for x in self.color_pattern]
+            self.color_origin = [random(), random()]
+            self.color_edge_dist = max([distance(p, self.color_origin) for p in self.points])
 
         # begin filling data
         self.edge_to_triangle = defaultdict(list)
@@ -62,14 +73,10 @@ class triangulation(tk.Frame):
         self.root.mainloop()
 
     def show_solution(self):
-        plt.triplot(self.points[:, 0], self.points[:, 1], self.triangles)
-
-        plt.plot(self.points[:, 0], self.points[:, 1], 'o')
-        for i, p in enumerate(self.points):
-            ec = self.edge_count[i]
-            plt.annotate(ec, p)
-
-        plt.show()
+        for t in self.triangles:
+            for e in triangle_points_to_edges(t):
+                self.selection_event(e[0])
+                self.selection_event(e[1])
 
     def scale_point(self, p):
         # This function only scales the points down to a 0-1 by 0-1 grid.
@@ -113,8 +120,22 @@ class triangulation(tk.Frame):
             edges = triangle_points_to_edges(self.triangles[ind])
             if all([(e in self.shown_edges) for e in edges]):
                 # Turn on this triangle
-                rand_color = randint(30, 128)
-                hex_str = '#'+hex(rand_color)[2:]*3
+                if self.grayscale:
+                    rand_color = randint(30, 128)
+                    hex_str = '#'+hex(rand_color)[2:]*3
+                else:
+                    tri_center = self.triangle_centroid(self.triangles[ind])
+                    dist = distance(self.color_origin, tri_center)
+                    dist_ratio = dist/self.color_edge_dist
+                    my_color = [int(255*dist_ratio*x) for x in self.color_pattern]
+                    hex_str = '#'
+                    for x in my_color:
+                        h = hex(x)[2:]
+                        if len(h) == 1:
+                            h = '0'+h
+                        hex_str += h
+
+
                 self.canvas.itemconfig(self.tri_ids[ind], fill=hex_str)
 
                 # Check each vertex connected to the triangle
@@ -141,6 +162,16 @@ class triangulation(tk.Frame):
 
         my_id = self.canvas.create_polygon(points, fill='')
         return my_id
+
+    def triangle_centroid(self, tri):
+        tri_center = [0, 0]
+        for p in tri:
+            pi = self.points[p]
+            tri_center[0] += pi[0]
+            tri_center[1] += pi[1]
+        tri_center[0] /= 3
+        tri_center[1] /= 3
+        return tri_center
 
     def draw_line(self, p1, p2):
         my_id = self.canvas.create_line(p1[0], p1[1], p2[0], p2[1])
@@ -188,6 +219,9 @@ class triangulation(tk.Frame):
         self.current_line_id = None
         self.last_click = None
 
+        if self.auto_solve:
+            self.show_solution()
+
     def selection_event(self, vertex_ind):
         my_id = self.vertex_id_list[vertex_ind]
         self.canvas.itemconfig(my_id, fill="blue")
@@ -232,36 +266,6 @@ class triangulation(tk.Frame):
             self.selection_event(closest[1])
         else:
             self.canvas.scan_mark(event.x, event.y)
-        """
-            my_id = self.vertex_id_list[closest[1]]
-            self.canvas.itemconfig(my_id, fill="blue")
-
-            if len(self.selected) == 0:
-                self.selected.append(closest[1])
-                p = self.scale_point(self.points[closest[1]])
-                self.current_line_id = self.draw_line(p, p)
-            else:
-                other = self.selected[0]
-                # clear selection
-                self.selected = []
-                self.canvas.itemconfig(my_id, fill="white")
-                self.canvas.itemconfig(self.vertex_id_list[other], fill="white")
-
-                edge = tuple(sorted([other, closest[1]]))
-
-                if edge not in self.shown_edges and edge[0] != edge[1]:
-                    self.shown_edges.append(edge)
-                    p1 = self.scale_point(self.points[edge[0]])
-                    p2 = self.scale_point(self.points[edge[1]])
-                    line_id = self.draw_line(p1, p2)
-                    self.edge_ids.append(line_id)
-
-                    self.remaining_edges[edge[0]] -= 1
-                    self.remaining_edges[edge[1]] -= 1
-                    self.update_nums()
-
-                    self.check_completed_triangles(edge)
-        """
 
     def undo(self, event):
         """
@@ -332,5 +336,5 @@ class triangulation(tk.Frame):
 
 
 if __name__ == '__main__':
-    g = triangulation(78, verbose=False)
+    g = triangulation(grayscale=False)
     # g.show_solution()
