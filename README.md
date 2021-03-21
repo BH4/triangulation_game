@@ -1,6 +1,8 @@
 # triangulation_game
 Inspired by the New York Times Vertex game. This is a procedurally generated version.
 
+![](example.gif)
+
 Current controls:
 Start the game by running the file "game.py" using python 3.
 
